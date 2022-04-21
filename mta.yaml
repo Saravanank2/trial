@@ -1,0 +1,84 @@
+_schema-version: "3.2"
+ID: trial
+version: 0.0.1
+modules:
+- name: trial-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: trial-destination-service
+    parameters:
+      content-target: true
+  - name: trial_html_repo_host
+    parameters:
+      service-key:
+        name: trial_html_repo_host-key
+  - name: uaa_trial
+    parameters:
+      service-key:
+        name: uaa_trial-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: trial_trial_html_repo_host
+          ServiceInstanceName: trial-html5-app-host-service
+          ServiceKeyName: trial_html_repo_host-key
+          sap.cloud.service: trial
+        - Authentication: OAuth2UserTokenExchange
+          Name: trial_uaa_trial
+          ServiceInstanceName: trial-xsuaa-service
+          ServiceKeyName: uaa_trial-key
+          sap.cloud.service: trial
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: trial_ui_deployer
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: trial_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - trialmodule-content.zip
+      name: trialmodule
+      target-path: resources/
+- name: trialmodule
+  type: html5
+  path: trialmodule
+  build-parameters:
+    builder: custom
+    commands:
+    - npm run build
+    supported-platforms: []
+resources:
+- name: trial-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      version: 1.0.0
+    service: destination
+    service-name: trial-destination-service
+    service-plan: lite
+- name: trial_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: trial-html5-app-host-service
+    service-plan: app-host
+- name: uaa_trial
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: trial-xsuaa-service
+    service-plan: application
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npm install
